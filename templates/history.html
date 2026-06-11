@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}История расчетов{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="hero">
+        <h2>История расчетов</h2>
+        <p>Сохраненные сметы и проекты</p>
+    </div>
+
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3><i class="fas fa-clock"></i> Все расчеты</h3>
+        </div>
+
+        {% if calculations %}
+            <div class="history-list">
+                {% for calc in calculations %}
+                <div class="history-item">
+                    <div class="history-info">
+                        <h4>
+                            {% if calc.room_type == 'office' %}🏢 Офис
+                            {% elif calc.room_type == 'warehouse' %}📦 Склад
+                            {% elif calc.room_type == 'entrance' %}🚪 Вход/Коридор
+                            {% else %}🏠 Другое
+                            {% endif %}
+                        </h4>
+                        <p>{{ calc.room_length }} м × {{ calc.room_width }} м | {{ calc.camera_count }} камер | {{ calc.date }}</p>
+                        <p class="camera-type">{{ calc.camera_type }}</p>
+                    </div>
+                    <div class="history-price">
+                        {{ calc.total_price }} ₽
+                    </div>
+                    <a href="{{ url_for('delete_calculation', id=calc.id) }}" 
+                       class="delete-btn" 
+                       onclick="return confirm('Удалить этот расчет?')">
+                        <i class="fas fa-trash"></i> Удалить
+                    </a>
+                    <a href="{{ url_for('smeta_print', calc_id=calc.id) }}" class="btn btn-sm btn-info" target="_blank">📄 Сформировать смету</a>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-history">
+                <i class="fas fa-folder-open"></i>
+                <p>История расчетов пуста</p>
+                <p>Выполните расчет на главной странице и сохраните его</p>
+                <a href="{{ url_for('index') }}" class="btn btn-primary" style="margin-top: 1rem;">
+                    <i class="fas fa-calculator"></i> Перейти к калькулятору
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.history-item {
+    background: #f8fafc;
+    border-radius: 16px;
+    padding: 1.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    border-left: 4px solid #10b981;
+}
+
+.history-info h4 {
+    margin: 0 0 0.25rem 0;
+}
+
+.history-info p {
+    margin: 0.25rem 0;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.camera-type {
+    font-size: 0.8rem;
+    color: #10b981;
+    font-weight: 500;
+}
+
+.history-price {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #10b981;
+}
+
+.delete-btn {
+    background: #fee2e2;
+    color: #dc2626;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.delete-btn:hover {
+    background: #fecaca;
+}
+
+.empty-history {
+    text-align: center;
+    padding: 3rem;
+    color: #64748b;
+}
+
+.empty-history i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+</style>
+{% endblock %}

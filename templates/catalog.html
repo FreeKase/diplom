@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Каталог оборудования{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="hero">
+        <h2>Каталог оборудования</h2>
+        <p>Актуальные цены и характеристики</p>
+    </div>
+
+    <div class="catalog-section">
+        <h3><i class="fas fa-camera"></i> Камеры videонаблюдения</h3>
+        <div class="catalog-grid">
+            {% for item in cameras %}
+            <a href="{{ url_for('product', product_id=item.id) }}" class="catalog-item-link">
+                <div class="catalog-item">
+                    <div class="catalog-icon"><i class="fas {{ item.icon }}"></i></div>
+                    <h4>{{ item.name }}</h4>
+                    <div class="catalog-price">{{ item.price|int }} ₽</div>
+                    <div class="catalog-specs">{{ item.specs }}</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <h3 style="margin-top: 2rem;"><i class="fas fa-hdd"></i> Видеорегистраторы</h3>
+        <div class="catalog-grid">
+            {% for item in recorders %}
+            <a href="{{ url_for('product', product_id=item.id) }}" class="catalog-item-link">
+                <div class="catalog-item">
+                    <div class="catalog-icon"><i class="fas {{ item.icon }}"></i></div>
+                    <h4>{{ item.name }}</h4>
+                    <div class="catalog-price">{{ item.price|int }} ₽</div>
+                    <div class="catalog-specs">{{ item.specs }}</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <h3 style="margin-top: 2rem;"><i class="fas fa-tools"></i> Аксессуары</h3>
+        <div class="catalog-grid">
+            {% for item in accessories %}
+            <a href="{{ url_for('product', product_id=item.id) }}" class="catalog-item-link">
+                <div class="catalog-item">
+                    <div class="catalog-icon"><i class="fas {{ item.icon }}"></i></div>
+                    <h4>{{ item.name }}</h4>
+                    <div class="catalog-price">{{ item.price|int }} ₽</div>
+                    <div class="catalog-specs">{{ item.specs }}</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+.catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.catalog-item-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.catalog-item {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: all 0.3s;
+    border: 1px solid #e2e8f0;
+    height: 100%;
+}
+
+.catalog-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 30px -12px rgba(0,0,0,0.1);
+}
+
+/* Остальные стили без изменений */
+.catalog-icon {
+    width: 60px;
+    height: 60px;
+    background: #10b981;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    color: white;
+    font-size: 1.8rem;
+}
+
+.catalog-item h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+}
+
+.catalog-price {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #10b981;
+    margin: 0.5rem 0;
+}
+
+.catalog-specs {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.hero {
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.hero h2 {
+    font-size: 2rem;
+    color: #0f172a;
+}
+</style>
+{% endblock %}

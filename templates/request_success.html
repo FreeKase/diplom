@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container" style="text-align: center; padding: 4rem 0;">
+    <i class="fas fa-check-circle" style="font-size: 4rem; color: #10b981;"></i>
+    <h1>Спасибо, {{ name }}!</h1>
+    <p>Ваша заявка принята. Мы свяжемся с вами в ближайшее время.</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">Вернуться на главную</a>
+</div>
+{% endblock %}

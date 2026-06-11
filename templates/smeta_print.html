@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Смета на оборудование видеонаблюдения</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            margin: 20px;
+            font-size: 12pt;
+        }
+        h2, h3 {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 6px;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #e0e0e0;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 9pt;
+            text-align: center;
+        }
+        .signature {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+<h2>СМЕТА № {{ calc.id }}</h2>
+<h3>на оборудование видеонаблюдения</h3>
+
+<p><strong>Объект:</strong> {{ calc.room_type|capitalize }} ({{ calc.room_length|int }} × {{ calc.room_width|int }} м)</p>
+<p><strong>Площадь помещения:</strong> {{ (calc.room_length * calc.room_width)|int }} м²</p>
+<p><strong>Дата составления:</strong> {{ calc.date.strftime('%d.%m.%Y') }}</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>№</th>
+            <th>Наименование работ и материалов</th>
+            <th>Ед. изм.</th>
+            <th>Кол-во</th>
+            <th>Цена за ед. (руб)</th>
+            <th>Стоимость (руб)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Камеры -->
+        <tr class="total-row">
+            <td colspan="6"><strong>1. Камеры видеонаблюдения</strong></td>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>{{ calc.camera_type }}</td>
+            <td>шт</td>
+            <td>{{ calc.camera_count }}</td>
+            <td>{{ (calc.total_price * 0.6 / calc.camera_count)|int }}</td>
+            <td>{{ (calc.total_price * 0.6)|int }}</td>
+        </tr>
+
+        <!-- Регистратор -->
+        <tr class="total-row">
+            <td colspan="6"><strong>2. Видеорегистратор</strong></td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>Видеорегистратор (подобран автоматически)</td>
+            <td>шт</td>
+            <td>1</td>
+            <td>{{ (calc.total_price * 0.25)|int }}</td>
+            <td>{{ (calc.total_price * 0.25)|int }}</td>
+        </tr>
+
+        <!-- Кабель -->
+        <tr class="total-row">
+            <td colspan="6"><strong>3. Кабельная инфраструктура</strong></td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>Кабель UTP Cat.5e + монтаж (с запасом 10%)</td>
+            <td>м</td>
+            <td>{{ ((calc.room_length * calc.room_width)**0.5 * calc.camera_count * 1.1)|int }}</td>
+            <td>18</td>
+            <td>{{ (calc.total_price * 0.1)|int }}</td>
+        </tr>
+
+        <!-- Блок питания -->
+        <tr class="total-row">
+            <td colspan="6"><strong>4. Блок питания</strong></td>
+        </tr>
+        <tr>
+            <td>4</td>
+            <td>Блок питания 12V 10A (1 блок на 4 камеры)</td>
+            <td>шт</td>
+            <td>{{ ((calc.camera_count + 3) // 4) }}</td>
+            <td>1850</td>
+            <td>{{ (calc.total_price * 0.05)|int }}</td>
+        </tr>
+
+        <!-- ИТОГО -->
+        <tr class="total-row">
+            <td colspan="5" style="text-align: right;"><strong>ВСЕГО по смете:</strong></td>
+            <td><strong>{{ calc.total_price|int }} руб.</strong></td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="footer">
+    <p>* Ведомость требуемых материалов рассчитана в соответствии с нормативами,<br>
+    с учетом поправок и технологического запаса (кабель +10%, блоки питания +25% запаса мощности).</p>
+    <p>** Итоговая стоимость является предварительной и подлежит уточнению после замера объекта.</p>
+</div>
+
+<div class="signature">
+    <div>Составил: ____________________</div>
+    <div>Заказчик: ____________________</div>
+</div>
+
+<script>
+    window.onload = function() {
+        window.print();
+    }
+</script>
+
+</body>
+</html>
