@@ -186,10 +186,12 @@ def smeta_print(calc_id):
     return render_template('smeta_print.html', calc=calc)
 
 @app.route('/submit_request', methods=['POST'])
+@login_required
 def submit_request():
     name = request.form.get('name')
     phone = request.form.get('phone')
     message = request.form.get('message')
+    new_request = ServiceRequest(name=name, phone=phone, message=message, status='new', user_id=session['user_id'])
 
     new_request = ServiceRequest(
         name=name,
