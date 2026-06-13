@@ -275,10 +275,6 @@ def catalog():
 @app.route('/contacts')
 def contacts():
     return render_template('contacts.html')
-
-@app.route('/save_calculation', methods=['POST'])
-@login_required
-def save_calculation():
     
 @app.route('/print/<int:calc_id>')
 def print_invoice(calc_id):
