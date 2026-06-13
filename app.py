@@ -50,14 +50,20 @@ class Calculation(db.Model):
     total_price = db.Column(db.Float)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
-class Equipment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    type = db.Column(db.String(50))  
-    price = db.Column(db.Float)
-    specs = db.Column(db.String(200))
-    icon = db.Column(db.String(50))
-    image = db.Column(db.String(100), default='default.jpg')
+if Equipment.query.count() == 0:
+    equipment_data = [
+        Equipment(name='Купольная камера 2MP', type='camera', price=3500, specs='2 Мп, ИК до 20м, встроенный микрофон', icon='fa-camera', image='camera_dome.jpg'),
+        Equipment(name='Уличная камера 2MP', type='camera', price=4800, specs='2 Мп, IP67, ИК до 30м, ночное видение', icon='fa-camera', image='camera_bullet.jpg'),
+        Equipment(name='Купольная камера 4MP', type='camera', price=5900, specs='4 Мп, широкий угол 110°, WDR', icon='fa-camera', image='camera_4mp.jpg'),
+        Equipment(name='PTZ камера 5MP', type='camera', price=18900, specs='5 Мп, поворот 360°, оптический зум 20x', icon='fa-video', image='ptz_camera.jpg'),
+        Equipment(name='Видеорегистратор 4 канала', type='recorder', price=7500, specs='1TB HDD, H.265+, удаленный доступ', icon='fa-hdd', image='recorder_4ch.jpg'),
+        Equipment(name='Видеорегистратор 8 каналов', type='recorder', price=12500, specs='2TB HDD, поддержка AI детекции', icon='fa-hdd', image='recorder_8ch.jpg'),
+        Equipment(name='Видеорегистратор 16 каналов', type='recorder', price=18900, specs='4TB HDD, 4K запись, RAID', icon='fa-server', image='recorder_16ch.jpg'),
+        Equipment(name='Кабель UTP Cat.5e', type='accessory', price=18, specs='медный, 305м в бухте', icon='fa-plug', image='cable.jpg'),
+        Equipment(name='Блок питания 12V 10A', type='accessory', price=1850, specs='на 4 камеры, защита от КЗ', icon='fa-battery-full', image='psu_4ch.jpg'),
+        Equipment(name='Кронштейн настенный', type='accessory', price=450, specs='металлический, регулируемый', icon='fa-mount', image=None),
+    ]
+    db.session.add_all(equipment_data)
 
 def calculate_cameras(length, width, room_type):
     area = length * width
