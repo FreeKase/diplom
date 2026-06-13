@@ -11,27 +11,37 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cctv.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'your-secret-key-2026-default'
 
-def is_valid_email(email):
-    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return re.match(pattern, email) is not None
-
-def is_strong_password(password):
-    if len(password) < 8:
-        return False, "Пароль должен содержать минимум 8 символов"
-    if not re.search(r'[A-Za-z]', password):
-        return False, "Пароль должен содержать буквы"
-    if not re.search(r'[0-9]', password):
-        return False, "Пароль должен содержать цифры"
-    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-        return False, "Пароль должен содержать спецсимвол (!@#$%^&* и т.д.)"
-    return True, ""
-
-def validate_room_params(length, width):
-    if length <= 0 or width <= 0:
-        return False, "Длина и ширина должны быть больше 0"
-    if length > 10000 or width > 10000:
-        return False, "Длина и ширина не могут превышать 10 000 метров"
-    return True, ""
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+        if not username:
+            flash('Имя пользователя обязательно.', 'danger')
+            return render_template('register.html')
+        if not is_valid_email(email):
+            flash('Введите корректный email (например, user@example.com).', 'danger')
+            return render_template('register.html')
+        valid, msg = is_strong_password(password)
+        if not valid:
+            flash(msg, 'danger')
+            return render_template('register.html')
+        if User.query.filter_by(email=email).first():
+            flash('Пользователь с таким email уже существует.', 'danger')
+            return render_template('register.html')
+        if User.query.filter_by(username=username).first():
+            flash('Пользователь с таким именем уже существует.', 'danger')
+            return render_template('register.html')
+        user = User(username=username, email=email)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        session['user_id'] = user.id
+        flash('Регистрация прошла успешно!', 'success')
+        return redirect(url_for('index'))
+    return render_template('register.html')
+    
 db = SQLAlchemy(app)
 
 class User(db.Model):
