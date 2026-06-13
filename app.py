@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, f
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 import json
 import os
 
@@ -11,7 +12,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'your-secret-key-2026-default'
 
 db = SQLAlchemy(app)
-
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -28,7 +28,6 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-
 class ServiceRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
@@ -37,7 +36,6 @@ class ServiceRequest(db.Model):
     status = db.Column(db.String(20), default='new')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  
-
 
 class Calculation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -49,7 +47,7 @@ class Calculation(db.Model):
     camera_type = db.Column(db.String(100))
     total_price = db.Column(db.Float)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    
+
 class Equipment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
@@ -59,25 +57,38 @@ class Equipment(db.Model):
     icon = db.Column(db.String(50))
     image = db.Column(db.String(100), default='default.jpg')
 
-if Equipment.query.count() == 0:
-    equipment_data = [
-        Equipment(name='Купольная камера 2MP', type='camera', price=3500, specs='2 Мп, ИК до 20м, встроенный микрофон', icon='fa-camera', image='camera_dome.jpg'),
-        Equipment(name='Уличная камера 2MP', type='camera', price=4800, specs='2 Мп, IP67, ИК до 30м, ночное видение', icon='fa-camera', image='camera_bullet.jpg'),
-        Equipment(name='Купольная камера 4MP', type='camera', price=5900, specs='4 Мп, широкий угол 110°, WDR', icon='fa-camera', image='camera_4mp.jpg'),
-        Equipment(name='PTZ камера 5MP', type='camera', price=18900, specs='5 Мп, поворот 360°, оптический зум 20x', icon='fa-video', image='ptz_camera.jpg'),
-        Equipment(name='Видеорегистратор 4 канала', type='recorder', price=7500, specs='1TB HDD, H.265+, удаленный доступ', icon='fa-hdd', image='recorder_4ch.jpg'),
-        Equipment(name='Видеорегистратор 8 каналов', type='recorder', price=12500, specs='2TB HDD, поддержка AI детекции', icon='fa-hdd', image='recorder_8ch.jpg'),
-        Equipment(name='Видеорегистратор 16 каналов', type='recorder', price=18900, specs='4TB HDD, 4K запись, RAID', icon='fa-server', image='recorder_16ch.jpg'),
-        Equipment(name='Кабель UTP Cat.5e', type='accessory', price=18, specs='медный, 305м в бухте', icon='fa-plug', image='cable.jpg'),
-        Equipment(name='Блок питания 12V 10A', type='accessory', price=1850, specs='на 4 камеры, защита от КЗ', icon='fa-battery-full', image='psu_4ch.jpg'),
-        Equipment(name='Кронштейн настенный', type='accessory', price=450, specs='металлический, регулируемый', icon='fa-mount', image=None),
-    ]
-    db.session.add_all(equipment_data)
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Пожалуйста, войдите в систему.', 'warning')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Пожалуйста, войдите в систему.', 'warning')
+            return redirect(url_for('login'))
+        user = User.query.get(session['user_id'])
+        if not user or not user.is_admin:
+            flash('Доступ запрещён. Требуются права администратора.', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.context_processor
+def utility_processor():
+    user = None
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+    return dict(current_user=user)
 
 def calculate_cameras(length, width, room_type):
     area = length * width
     perimeter = 2 * (length + width)
-
     if room_type == 'office':
         base_count = max(2, round(area / 20))
         camera_type = 'Купольная камера 2MP (внутренняя)'
@@ -94,7 +105,6 @@ def calculate_cameras(length, width, room_type):
         base_count = max(2, round(area / 20))
         camera_type = 'Стандартная камера 2MP'
         camera_price = 3200
-
     return {
         'count': base_count,
         'type': camera_type,
@@ -122,26 +132,6 @@ def calculate_power(camera_count):
     units = (camera_count + 3) // 4
     return {'units': units, 'price_per_unit': 1850, 'total': units * 1850}
     
-from functools import wraps
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Пожалуйста, войдите в систему.', 'warning')
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
-    
-@app.context_processor
-def utility_processor():
-    user = None
-    user_is_admin = False
-    if 'user_id' in session:
-        user = User.query.get(session['user_id'])
-        if user:
-            user_is_admin = user.is_admin
-    return dict(current_user=user, user_is_admin=user_is_admin)
-
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -201,37 +191,11 @@ def calculate():
             'audio': audio,
             'night_vision': night_vision
         })
-
     except Exception as e:
         return render_template('index.html', error=str(e))
 
-@app.route('/smeta/<int:calc_id>')
-def smeta_print(calc_id):
-    calc = Calculation.query.get_or_404(calc_id)
-    return render_template('smeta_print.html', calc=calc)
-
-@app.route('/submit_request', methods=['POST'])
-@login_required
-def submit_request():
-    name = request.form.get('name')
-    phone = request.form.get('phone')
-    message = request.form.get('message')
-    new_request = ServiceRequest(name=name, phone=phone, message=message, status='new', user_id=session['user_id'])
-
-    new_request = ServiceRequest(
-        name=name,
-        phone=phone,
-        message=message,
-        status='new',
-        user_id=session.get('user_id')
-    )
-    db.session.add(new_request)
-    db.session.commit()
-
-    return render_template('request_success.html', name=name)
-
-
 @app.route('/save_calculation', methods=['POST'])
+@login_required
 def save_calculation():
     try:
         calc = Calculation(
@@ -251,23 +215,45 @@ def save_calculation():
         flash(f'Ошибка сохранения: {e}', 'danger')
         return redirect(url_for('index'))
 
+@app.route('/submit_request', methods=['POST'])
+@login_required
+def submit_request():
+    name = request.form.get('name')
+    phone = request.form.get('phone')
+    message = request.form.get('message')
+
+    new_request = ServiceRequest(
+        name=name,
+        phone=phone,
+        message=message,
+        status='new',
+        user_id=session.get('user_id')
+    )
+    db.session.add(new_request)
+    db.session.commit()
+
+    return render_template('request_success.html', name=name)
+
+@app.route('/catalog')
+def catalog():
+    cameras = Equipment.query.filter_by(type='camera').all()
+    recorders = Equipment.query.filter_by(type='recorder').all()
+    accessories = Equipment.query.filter_by(type='accessory').all()
+    return render_template('catalog.html', cameras=cameras, recorders=recorders, accessories=accessories)
 
 @app.route('/product/<int:product_id>')
 def product(product_id):
     item = Equipment.query.get_or_404(product_id)
     return render_template('product.html', item=item)
 
-
 @app.route('/history')
+@login_required
 def history():
-    if 'user_id' not in session:
-        flash('Войдите, чтобы посмотреть историю расчётов', 'warning')
-        return redirect(url_for('login'))
     calculations = Calculation.query.filter_by(user_id=session['user_id']).order_by(Calculation.date.desc()).all()
     return render_template('history.html', calculations=calculations)
 
-
 @app.route('/history/delete/<int:id>')
+@login_required
 def delete_calculation(id):
     calc = Calculation.query.get_or_404(id)
     if calc.user_id != session.get('user_id'):
@@ -278,19 +264,6 @@ def delete_calculation(id):
     flash('Расчёт удалён', 'success')
     return redirect(url_for('history'))
 
-
-@app.route('/catalog')
-def catalog():
-    cameras = Equipment.query.filter_by(type='camera').all()
-    recorders = Equipment.query.filter_by(type='recorder').all()
-    accessories = Equipment.query.filter_by(type='accessory').all()
-    return render_template('catalog.html', cameras=cameras, recorders=recorders, accessories=accessories)
-
-
-@app.route('/contacts')
-def contacts():
-    return render_template('contacts.html')
-    
 @app.route('/print/<int:calc_id>')
 def print_invoice(calc_id):
     calc = Calculation.query.get_or_404(calc_id)
@@ -318,7 +291,6 @@ def register():
 
     return render_template('register.html')
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -335,18 +307,15 @@ def login():
 
     return render_template('login.html')
 
-
 @app.route('/logout')
 def logout():
     session.pop('user_id', None)
     flash('Вы вышли из системы.', 'info')
     return redirect(url_for('index'))
-    
-def admin_required():
-    if 'user_id' not in session:
-        return False
-    user = User.query.get(session['user_id'])
-    return user and user.is_admin
+
+@app.route('/contacts')
+def contacts():
+    return render_template('contacts.html')
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -362,9 +331,8 @@ def admin_login():
     return render_template('admin_login.html')
 
 @app.route('/admin/dashboard')
+@admin_required
 def admin_dashboard():
-    if not admin_required():
-        return redirect(url_for('admin_login'))
     products = Equipment.query.all()
     requests = ServiceRequest.query.order_by(ServiceRequest.created_at.desc()).all()
     users = User.query.all()
@@ -372,9 +340,8 @@ def admin_dashboard():
     return render_template('admin/dashboard.html', products=products, requests=requests, users=users, stats=stats)
 
 @app.route('/admin/product/add', methods=['GET', 'POST'])
+@admin_required
 def add_product():
-    if not admin_required():
-        return redirect(url_for('admin_login'))
     if request.method == 'POST':
         product = Equipment(
             name=request.form['name'],
@@ -390,9 +357,8 @@ def add_product():
     return render_template('admin/product_form.html')
 
 @app.route('/admin/product/edit/<int:id>', methods=['GET', 'POST'])
+@admin_required
 def edit_product(id):
-    if not admin_required():
-        return redirect(url_for('admin_login'))
     product = Equipment.query.get_or_404(id)
     if request.method == 'POST':
         product.name = request.form['name']
@@ -406,9 +372,8 @@ def edit_product(id):
     return render_template('admin/product_form.html', product=product)
 
 @app.route('/admin/product/delete/<int:id>')
+@admin_required
 def delete_product(id):
-    if not admin_required():
-        return redirect(url_for('admin_login'))
     product = Equipment.query.get_or_404(id)
     db.session.delete(product)
     db.session.commit()
@@ -416,9 +381,8 @@ def delete_product(id):
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/request/<int:id>/status', methods=['POST'])
+@admin_required
 def update_request_status(id):
-    if not admin_required():
-        return redirect(url_for('admin_login'))
     req = ServiceRequest.query.get_or_404(id)
     req.status = request.form['status']
     db.session.commit()
@@ -426,9 +390,8 @@ def update_request_status(id):
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/request/delete/<int:id>')
+@admin_required
 def delete_request(id):
-    if not admin_required():
-        return redirect(url_for('admin_login'))
     req = ServiceRequest.query.get_or_404(id)
     db.session.delete(req)
     db.session.commit()
@@ -436,20 +399,18 @@ def delete_request(id):
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/user/block/<int:id>')
+@admin_required
 def block_user(id):
-    if not admin_required():
-        return redirect(url_for('admin_login'))
     user = User.query.get_or_404(id)
     user.is_active = not user.is_active
     db.session.commit()
     status = 'заблокирован' if not user.is_active else 'разблокирован'
     flash(f'Пользователь {user.username} {status}', 'info')
     return redirect(url_for('admin_dashboard'))
-
+    
 @app.route('/admin/user/delete/<int:id>')
+@admin_required
 def delete_user(id):
-    if not admin_required():
-        return redirect(url_for('admin_login'))
     user = User.query.get_or_404(id)
     db.session.delete(user)
     db.session.commit()
@@ -457,51 +418,43 @@ def delete_user(id):
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/calculation/delete/<int:id>')
+@admin_required
 def delete_calculation_admin(id):
-    if not admin_required():
-        return redirect(url_for('admin_login'))
     calc = Calculation.query.get_or_404(id)
     db.session.delete(calc)
     db.session.commit()
     flash('Расчёт удалён', 'success')
     return redirect(url_for('admin_dashboard'))
-    
+
 def init_db():
-    db.drop_all()
-    db.create_all()
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
 
-    # Создаём админа
-    if not User.query.filter_by(username='admin').first():
-        admin = User(username='admin', email='admin@example.com', is_admin=True)
-        admin.set_password('admin123')
-        db.session.add(admin)
+        if not User.query.filter_by(username='admin').first():
+            admin = User(username='admin', email='admin@example.com', is_admin=True)
+            admin.set_password('admin123')
+            db.session.add(admin)
 
-    if Equipment.query.count() == 0:
-        equipment_data = [
-            Equipment(name='Купольная камера 2MP', type='camera', price=3500, specs='2 Мп, ИК до 20м, встроенный микрофон', icon='fa-camera'),
-            Equipment(name='Уличная камера 2MP', type='camera', price=4800, specs='2 Мп, IP67, ИК до 30м, ночное видение', icon='fa-camera'),
-            Equipment(name='Купольная камера 4MP', type='camera', price=5900, specs='4 Мп, широкий угол 110°, WDR', icon='fa-camera'),
-            Equipment(name='PTZ камера 5MP', type='camera', price=18900, specs='5 Мп, поворот 360°, оптический зум 20x', icon='fa-video'),
-            Equipment(name='Видеорегистратор 4 канала', type='recorder', price=7500, specs='1TB HDD, H.265+, удаленный доступ', icon='fa-hdd'),
-            Equipment(name='Видеорегистратор 8 каналов', type='recorder', price=12500, specs='2TB HDD, поддержка AI детекции', icon='fa-hdd'),
-            Equipment(name='Видеорегистратор 16 каналов', type='recorder', price=18900, specs='4TB HDD, 4K запись, RAID', icon='fa-server'),
-            Equipment(name='Кабель UTP Cat.5e', type='accessory', price=18, specs='медный, 305м в бухте', icon='fa-plug'),
-            Equipment(name='Блок питания 12V 10A', type='accessory', price=1850, specs='на 4 камеры, защита от КЗ', icon='fa-battery-full'),
-            Equipment(name='Кронштейн настенный', type='accessory', price=450, specs='металлический, регулируемый', icon='fa-mount'),
-        ]
-        db.session.add_all(equipment_data)
+        if Equipment.query.count() == 0:
+            equipment_data = [
+                Equipment(name='Купольная камера 2MP', type='camera', price=3500, specs='2 Мп, ИК до 20м', icon='fa-camera', image='camera_dome.jpg'),
+                Equipment(name='Уличная камера 2MP', type='camera', price=4800, specs='2 Мп, IP67', icon='fa-camera', image='camera_bullet.jpg'),
+                Equipment(name='Купольная камера 4MP', type='camera', price=5900, specs='4 Мп, широкий угол', icon='fa-camera', image='camera_4mp.jpg'),
+                Equipment(name='PTZ камера 5MP', type='camera', price=18900, specs='5 Мп, поворот 360°', icon='fa-video', image='ptz_camera.jpg'),
+                Equipment(name='Видеорегистратор 4 канала', type='recorder', price=7500, specs='1TB HDD', icon='fa-hdd', image='recorder_4ch.jpg'),
+                Equipment(name='Видеорегистратор 8 каналов', type='recorder', price=12500, specs='2TB HDD', icon='fa-hdd', image='recorder_8ch.jpg'),
+                Equipment(name='Видеорегистратор 16 каналов', type='recorder', price=18900, specs='4TB HDD', icon='fa-server', image='recorder_16ch.jpg'),
+                Equipment(name='Кабель UTP Cat.5e', type='accessory', price=18, specs='медный', icon='fa-plug', image='cable.jpg'),
+                Equipment(name='Блок питания 12V 10A', type='accessory', price=1850, specs='на 4 камеры', icon='fa-battery-full', image='psu_4ch.jpg'),
+                Equipment(name='Кронштейн настенный', type='accessory', price=450, specs='металлический', icon='fa-mount', image=None),
+            ]
+            db.session.add_all(equipment_data)
 
-    db.session.commit()
-    print("База данных инициализирована. Админ: admin / admin123")
-    
-@app.context_processor
-def utility_processor():
-    user = None
-    if 'user_id' in session:
-        user = User.query.get(session['user_id'])
-    return dict(current_user=user)
-
+        db.session.commit()
+        print("База данных инициализирована. Админ: admin / admin123")
 
 if __name__ == "__main__":
+    init_db()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
