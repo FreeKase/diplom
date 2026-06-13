@@ -78,7 +78,7 @@
                     <input type="hidden" name="camera_type" value="{{ result.cameras.type if result else '' }}">
                     <input type="hidden" name="total_price" value="{{ result.total if result else '' }}">
                     
-                    {% if user_is_admin or user %}
+                    {% if current_user %}
                         <button type="submit" class="btn btn-outline">
                             <i class="fas fa-save"></i> Сохранить расчет
                         </button>
