@@ -26,18 +26,17 @@
                             {% else %}🏠 Другое
                             {% endif %}
                         </h4>
-                        <p>{{ calc.room_length }} м × {{ calc.room_width }} м | {{ calc.camera_count }} камер | {{ calc.date }}</p>
+                        <p>{{ calc.room_length|int }} м × {{ calc.room_width|int }} м | {{ calc.camera_count }} камер | {{ calc.date.strftime('%d.%m.%Y %H:%M') }}</p>
                         <p class="camera-type">{{ calc.camera_type }}</p>
                     </div>
                     <div class="history-price">
-                        {{ calc.total_price }} ₽
+                        {{ calc.total_price|int }} ₽
                     </div>
                     <a href="{{ url_for('delete_calculation', id=calc.id) }}" 
                        class="delete-btn" 
                        onclick="return confirm('Удалить этот расчет?')">
                         <i class="fas fa-trash"></i> Удалить
                     </a>
-                    <a href="{{ url_for('smeta_print', calc_id=calc.id) }}" class="btn btn-sm btn-info" target="_blank">📄 Сформировать смету</a>
                 </div>
                 {% endfor %}
             </div>
