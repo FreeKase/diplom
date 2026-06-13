@@ -49,6 +49,15 @@ class Calculation(db.Model):
     camera_type = db.Column(db.String(100))
     total_price = db.Column(db.Float)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    
+class Equipment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    type = db.Column(db.String(50))  
+    price = db.Column(db.Float)
+    specs = db.Column(db.String(200))
+    icon = db.Column(db.String(50))
+    image = db.Column(db.String(100), default='default.jpg')
 
 if Equipment.query.count() == 0:
     equipment_data = [
