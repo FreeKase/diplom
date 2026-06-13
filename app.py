@@ -8,7 +8,7 @@ import os
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cctv.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'your-secret-key-2026-default'  # В production поменяйте на надежный
+app.secret_key = 'your-secret-key-2026-default'
 
 db = SQLAlchemy(app)
 
@@ -16,10 +16,10 @@ db = SQLAlchemy(app)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)  # Добавлено поле email
+    email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
-    is_active = db.Column(db.Boolean, default=True)  # На будущее для блокировки
+    is_active = db.Column(db.Boolean, default=True) 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):
@@ -36,7 +36,7 @@ class ServiceRequest(db.Model):
     message = db.Column(db.Text)
     status = db.Column(db.String(20), default='new')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Связь с пользователем
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  
 
 
 class Calculation(db.Model):
@@ -48,20 +48,16 @@ class Calculation(db.Model):
     camera_count = db.Column(db.Integer)
     camera_type = db.Column(db.String(100))
     total_price = db.Column(db.Float)
-    # Связываем расчет с пользователем, который его сохранил
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
 class Equipment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
-    type = db.Column(db.String(50))  # camera, recorder, accessory
+    type = db.Column(db.String(50))  
     price = db.Column(db.Float)
     specs = db.Column(db.String(200))
     icon = db.Column(db.String(50))
     image = db.Column(db.String(100), default='default.jpg')
-
-
-# ================= ЛОГИКА РАСЧЕТА =================
 
 def calculate_cameras(length, width, room_type):
     area = length * width
@@ -111,8 +107,6 @@ def calculate_power(camera_count):
     units = (camera_count + 3) // 4
     return {'units': units, 'price_per_unit': 1850, 'total': units * 1850}
 
-
-# ================= КОНТЕКСТНЫЙ ПРОЦЕССОР (ДЛЯ ШАБЛОНОВ) =================
 @app.context_processor
 def utility_processor():
     user = None
@@ -123,8 +117,6 @@ def utility_processor():
             user_is_admin = user.is_admin
     return dict(current_user=user, user_is_admin=user_is_admin)
 
-
-# ================= МАРШРУТЫ (СТРАНИЦЫ) =================
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -241,7 +233,6 @@ def product(product_id):
 
 @app.route('/history')
 def history():
-    # Если пользователь не авторизован, перенаправляем на логин
     if 'user_id' not in session:
         flash('Войдите, чтобы посмотреть историю расчётов', 'warning')
         return redirect(url_for('login'))
@@ -252,7 +243,6 @@ def history():
 @app.route('/history/delete/<int:id>')
 def delete_calculation(id):
     calc = Calculation.query.get_or_404(id)
-    # Проверяем, что расчет принадлежит текущему пользователю
     if calc.user_id != session.get('user_id'):
         flash('Нет прав на удаление этого расчета', 'danger')
         return redirect(url_for('history'))
@@ -280,8 +270,6 @@ def print_invoice(calc_id):
     calc = Calculation.query.get_or_404(calc_id)
     return render_template('print_invoice.html', calc=calc)
 
-
-# ================= АУТЕНТИФИКАЦИЯ И ПОЛЬЗОВАТЕЛИ =================
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -327,9 +315,7 @@ def logout():
     session.pop('user_id', None)
     flash('Вы вышли из системы.', 'info')
     return redirect(url_for('index'))
-
-
-# ================= АДМИН-ПАНЕЛЬ =================
+    
 def admin_required():
     if 'user_id' not in session:
         return False
@@ -412,7 +398,6 @@ def update_request_status(id):
     db.session.commit()
     flash('Статус заявки обновлён', 'success')
     return redirect(url_for('admin_dashboard'))
-# ================= ДОПОЛНИТЕЛЬНЫЕ АДМИН-МАРШРУТЫ =================
 
 @app.route('/admin/request/delete/<int:id>')
 def delete_request(id):
@@ -454,8 +439,7 @@ def delete_calculation_admin(id):
     db.session.commit()
     flash('Расчёт удалён', 'success')
     return redirect(url_for('admin_dashboard'))
-
-# ================= ЗАПОЛНЕНИЕ БАЗЫ НАЧАЛЬНЫМИ ДАННЫМИ =================
+    
 def init_db():
     db.drop_all()
     db.create_all()
@@ -466,7 +450,6 @@ def init_db():
         admin.set_password('admin123')
         db.session.add(admin)
 
-    # Заполняем каталог, если он пуст
     if Equipment.query.count() == 0:
         equipment_data = [
             Equipment(name='Купольная камера 2MP', type='camera', price=3500, specs='2 Мп, ИК до 20м, встроенный микрофон', icon='fa-camera'),
@@ -484,7 +467,13 @@ def init_db():
 
     db.session.commit()
     print("База данных инициализирована. Админ: admin / admin123")
-
+    
+@app.context_processor
+def utility_processor():
+    user = None
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+    return dict(current_user=user)
 
 
 if __name__ == "__main__":
