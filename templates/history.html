@@ -32,11 +32,16 @@
                     <div class="history-price">
                         {{ calc.total_price|int }} ₽
                     </div>
-                    <a href="{{ url_for('delete_calculation', id=calc.id) }}" 
-                       class="delete-btn" 
-                       onclick="return confirm('Удалить этот расчет?')">
-                        <i class="fas fa-trash"></i> Удалить
-                    </a>
+                    <div class="history-actions">
+                        <a href="{{ url_for('print_invoice', calc_id=calc.id) }}" class="print-btn" target="_blank">
+                            <i class="fas fa-print"></i> Сформировать смету
+                        </a>
+                        <a href="{{ url_for('delete_calculation', id=calc.id) }}" 
+                           class="delete-btn" 
+                           onclick="return confirm('Удалить этот расчет?')">
+                            <i class="fas fa-trash"></i> Удалить
+                        </a>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -72,6 +77,10 @@
     border-left: 4px solid #10b981;
 }
 
+.history-info {
+    flex: 2;
+}
+
 .history-info h4 {
     margin: 0 0 0.25rem 0;
 }
@@ -92,6 +101,27 @@
     font-weight: 700;
     font-size: 1.2rem;
     color: #10b981;
+    min-width: 100px;
+    text-align: right;
+}
+
+.history-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.print-btn {
+    background: #3b82f6;
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.print-btn:hover {
+    background: #2563eb;
 }
 
 .delete-btn {
