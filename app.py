@@ -336,8 +336,20 @@ def admin_dashboard():
     products = Equipment.query.all()
     requests = ServiceRequest.query.order_by(ServiceRequest.created_at.desc()).all()
     users = User.query.all()
-    stats = {'products': len(products), 'requests': len(requests), 'users': len(users)}
-    return render_template('admin/dashboard.html', products=products, requests=requests, users=users, stats=stats)
+    calculations = Calculation.query.order_by(Calculation.date.desc()).all()
+    
+    stats = {
+        'products': len(products),
+        'requests': len(requests),
+        'users': len(users),
+        'calculations': len(calculations)
+    }
+    return render_template('admin/dashboard.html',
+           products=products, 
+           requests=requests, 
+           users=users, 
+           calculations=calculations,
+           stats=stats)
 
 @app.route('/admin/product/add', methods=['GET', 'POST'])
 @admin_required
