@@ -106,7 +106,17 @@ def calculate_recorder(camera_count):
 def calculate_power(camera_count):
     units = (camera_count + 3) // 4
     return {'units': units, 'price_per_unit': 1850, 'total': units * 1850}
-
+    
+from functools import wraps
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Пожалуйста, войдите в систему.', 'warning')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+    
 @app.context_processor
 def utility_processor():
     user = None
@@ -266,7 +276,10 @@ def catalog():
 def contacts():
     return render_template('contacts.html')
 
-
+@app.route('/save_calculation', methods=['POST'])
+@login_required
+def save_calculation():
+    
 @app.route('/print/<int:calc_id>')
 def print_invoice(calc_id):
     calc = Calculation.query.get_or_404(calc_id)
